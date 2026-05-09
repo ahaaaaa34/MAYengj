@@ -290,6 +290,40 @@
       font-weight: 500; display: none;
     }
 
+    /* ── ExB interactive ── */
+    .exb-num-btn {
+      display: inline-flex; align-items: center;
+      background: var(--pl); color: var(--p);
+      border: 2px solid var(--p); border-radius: 6px;
+      padding: 2px 9px; font-size: 15px; font-weight: 700;
+      cursor: pointer; font-family: inherit;
+      margin: 0 1px; vertical-align: middle; line-height: 1.6;
+      transition: background .12s, color .12s, border-color .12s;
+    }
+    .exb-num-btn:hover:not(:disabled) { background: var(--p); color: white; }
+    .exb-num-btn.selected  { background: var(--ng); border-color: var(--ng); color: white; }
+    .exb-num-btn.correct-ans { background: var(--ok); border-color: var(--ok); color: white; }
+    .exb-num-btn:disabled  { opacity: .65; cursor: default; }
+    .exb-input-lbl {
+      font-size: 13px; color: var(--mu); margin-bottom: 8px; margin-top: 16px;
+    }
+    .exb-input-field {
+      width: 100%; padding: 12px 14px;
+      border: 2px solid var(--br); border-radius: var(--r);
+      font-size: 15px; font-family: inherit; color: var(--tx);
+      outline: none; transition: border-color .15s; background: white;
+      margin-bottom: 14px;
+    }
+    .exb-input-field:focus { border-color: var(--p); }
+    .exb-input-field:disabled { opacity: .6; background: var(--bg); }
+    .exb-reveal-btn {
+      width: 100%; padding: 13px; background: #fff; color: var(--mu);
+      border: 2px solid var(--br); border-radius: var(--r);
+      font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit;
+      transition: background .12s; margin-top: 10px;
+    }
+    .exb-reveal-btn:hover { background: var(--bg); color: var(--tx); }
+
     /* ── Retry wrong button ── */
     .btn-wrong {
       width: 100%; padding: 14px; border-radius: var(--r);
@@ -369,8 +403,20 @@
       <div class="q-ja"  id="q-ja"></div>
     </div>
 
-    <!-- FRAME / ExA / ExB options -->
+    <!-- FRAME / ExA options -->
     <div class="opts" id="opts"></div>
+
+    <!-- ExB zone -->
+    <div id="exb-zone" style="display:none">
+      <div id="exb-input-area" style="display:none">
+        <p class="exb-input-lbl">正しい形を入力してください</p>
+        <input id="exb-input" class="exb-input-field" type="text"
+          autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false"
+          placeholder="正しい形を入力...">
+      </div>
+      <button class="check-btn" id="exb-check-btn" disabled>確認する</button>
+      <button class="exb-reveal-btn" id="exb-reveal-btn">答えを見る</button>
+    </div>
 
     <!-- ExC Duolingo zone -->
     <div id="exc-zone" style="display:none">

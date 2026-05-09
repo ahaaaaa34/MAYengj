@@ -9,7 +9,8 @@ const state = {
   wrongIds: [],
   excAllWords: [],
   excUsed: new Set(),
-  excAnswer: []
+  excAnswer: [],
+  excBSelected: null
 };
 
 /* ── Utility ── */
@@ -129,26 +130,27 @@ function renderQ() {
   $('q-src').textContent = q.source ? `〈${q.source}〉` : '';
 
   $('opts').innerHTML = '';
-  $('opts').style.display = '';
+  $('opts').style.display     = 'none';
+  $('exb-zone').style.display = 'none';
   $('exc-zone').style.display = 'none';
   $('fb-card').className = 'fb-card';
   $('next-btn').className = 'next-btn';
   $('q-ja').style.display = 'none';
   state.answered = false;
 
-  if (q.type === 'choice' || q.type === 'exB') {
-    renderChoiceQ(q);
-  } else {
+  if (q.type === 'exB') {
+    renderExBQ(q);
+  } else if (q.type === 'exC') {
     renderExCQ(q);
+  } else {
+    $('opts').style.display = '';
+    renderChoiceQ(q);
   }
 }
 
-/* ── Choice / ExB ── */
+/* ── Choice (FRAME / ExA) ── */
 function renderChoiceQ(q) {
-  let html = q.question.replace(/\(\s*\)/g, '<span class="blank">(　　　)</span>');
-  if (q.type === 'exB') {
-    html = html.replace(/([①②③④])/g, '<span class="num-part">$1</span>');
-  }
+  const html = q.question.replace(/\(\s*\)/g, '<span class="blank">(　　　)</span>');
   $('q-text').innerHTML = html;
 
   const NUMS = ['①', '②', '③', '④'];
@@ -181,19 +183,122 @@ function selectOption(chosen) {
     else if (i === chosen) btn.classList.add('wrong');
   });
 
-  // ExB: always show correction + corrected sentence
-  const isExB = q.type === 'exB';
   showFeedback({
     isOK,
-    headText: isOK
-      ? '✓ 正解！'
-      : `✗ 不正解　正解: ${NUMS[q.answer]}`,
-    fixText:       isExB ? q.correction : null,
-    correctedText: isExB ? q.corrected  : null,
+    headText:      isOK ? '✓ 正解！' : `✗ 不正解　正解: ${NUMS[q.answer]}`,
+    fixText:       null,
+    correctedText: null,
     traText:  q.translation ? `[訳] ${q.translation}` : null,
     expText:  q.explanation
   });
 }
+
+/* ── ExB ── */
+function renderExBQ(q) {
+  const NUMS = ['①', '②', '③', '④'];
+  const parts = q.question.split(/([①②③④])/);
+
+  let html = '';
+  parts.forEach(part => {
+    const numIdx = NUMS.indexOf(part);
+    if (numIdx >= 0) {
+      html += `<button class="exb-num-btn" data-idx="${numIdx}">${part}</button>`;
+    } else {
+      html += part;
+    }
+  });
+  $('q-text').innerHTML = html;
+
+  $('q-text').querySelectorAll('.exb-num-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (state.answered) return;
+      state.excBSelected = parseInt(btn.dataset.idx);
+      $('q-text').querySelectorAll('.exb-num-btn').forEach(b => {
+        b.classList.toggle('selected', parseInt(b.dataset.idx) === state.excBSelected);
+      });
+      $('exb-input-area').style.display = '';
+      $('exb-input').focus();
+      updateExBCheckBtn();
+    });
+  });
+
+  state.excBSelected = null;
+  $('exb-input-area').style.display = 'none';
+  $('exb-input').value = '';
+  $('exb-input').disabled = false;
+  $('exb-check-btn').disabled = true;
+  $('exb-reveal-btn').style.display = '';
+  $('exb-zone').style.display = '';
+}
+
+function updateExBCheckBtn() {
+  $('exb-check-btn').disabled =
+    state.excBSelected === null || $('exb-input').value.trim().length === 0;
+}
+
+$('exb-input').addEventListener('input', updateExBCheckBtn);
+$('exb-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !$('exb-check-btn').disabled) $('exb-check-btn').click();
+});
+
+$('exb-check-btn').addEventListener('click', () => {
+  if (state.answered) return;
+  state.answered = true;
+  $('exb-check-btn').disabled = true;
+
+  const q           = state.queue[state.idx];
+  const correctNum  = q.answer;
+  const correctForm = normalize(q.correction.split('→')[1] || '');
+  const typed       = normalize($('exb-input').value);
+  const isOK        = state.excBSelected === correctNum && typed === correctForm;
+
+  state.scores[q.section].t++;
+  if (isOK) state.scores[q.section].c++;
+  else      state.wrongIds.push(q.id);
+
+  $('q-text').querySelectorAll('.exb-num-btn').forEach(btn => {
+    btn.disabled = true;
+    if (parseInt(btn.dataset.idx) === correctNum) btn.classList.add('correct-ans');
+  });
+  $('exb-input').disabled = true;
+  $('exb-reveal-btn').style.display = 'none';
+
+  const NUMS = ['①', '②', '③', '④'];
+  showFeedback({
+    isOK,
+    headText:      isOK ? '✓ 正解！' : `✗ 不正解　正解: ${NUMS[correctNum]}`,
+    fixText:       isOK ? null : q.correction,
+    correctedText: q.corrected,
+    traText:  q.translation ? `[訳] ${q.translation}` : null,
+    expText:  q.explanation
+  });
+});
+
+$('exb-reveal-btn').addEventListener('click', () => {
+  if (state.answered) return;
+  state.answered = true;
+
+  const q = state.queue[state.idx];
+  state.scores[q.section].t++;
+  state.wrongIds.push(q.id);
+
+  const NUMS = ['①', '②', '③', '④'];
+  $('q-text').querySelectorAll('.exb-num-btn').forEach(btn => {
+    btn.disabled = true;
+    if (parseInt(btn.dataset.idx) === q.answer) btn.classList.add('correct-ans');
+  });
+  $('exb-input').disabled = true;
+  $('exb-check-btn').disabled = true;
+
+  showFeedback({
+    isOK:          false,
+    headText:      `答え: ${NUMS[q.answer]}`,
+    fixText:       q.correction,
+    correctedText: q.corrected,
+    traText:  q.translation ? `[訳] ${q.translation}` : null,
+    expText:  q.explanation
+  });
+});
 
 /* ── ExC ── */
 function renderExCQ(q) {
@@ -204,17 +309,14 @@ function renderExCQ(q) {
     $('q-ja').style.display = '';
   }
 
-  $('opts').style.display     = 'none';
   $('exc-zone').style.display = '';
 
-  // Context line
   let ctxHtml = '';
   if (q.prefix) ctxHtml += `${q.prefix} `;
   ctxHtml += '<span class="ctx-blank">（　　　　　　）</span>';
   if (q.suffix) ctxHtml += /^[.,?!]/.test(q.suffix) ? q.suffix : ` ${q.suffix}`;
   $('exc-ctx').innerHTML = ctxHtml;
 
-  // Shuffle and init chip state
   state.excAllWords = shuffle(q.words.map((w, i) => ({ word: w, i })));
   state.excUsed     = new Set();
   state.excAnswer   = [];
@@ -229,17 +331,14 @@ function renderExCChips() {
   const poolEl  = $('pool-area');
   const hintEl  = $('build-hint');
 
-  // Remove old answer chips (keep hint span)
   [...buildEl.querySelectorAll('.wchip-ans')].forEach(el => el.remove());
   hintEl.style.display = state.excAnswer.length ? 'none' : '';
 
-  // Answer chips with drag support
   state.excAnswer.forEach(({ word, i }, pos) => {
     const btn = makeAnswerChip(word, i, pos);
     buildEl.appendChild(btn);
   });
 
-  // Pool chips
   poolEl.innerHTML = '';
   state.excAllWords
     .filter(({ i }) => !state.excUsed.has(i))
@@ -255,13 +354,13 @@ function renderExCChips() {
 /* ── Answer chip factory with long-press drag ── */
 function makeAnswerChip(word, wordI, pos) {
   const btn = document.createElement('button');
-  btn.className       = 'wchip wchip-ans';
-  btn.textContent     = word;
-  btn.dataset.ansPos  = pos;
+  btn.className      = 'wchip wchip-ans';
+  btn.textContent    = word;
+  btn.dataset.ansPos = pos;
 
-  let timer     = null;
-  let dragging  = false;
-  let ghost     = null;
+  let timer    = null;
+  let dragging = false;
+  let ghost    = null;
   let startX, startY, capturedId;
 
   function cleanup() {
@@ -273,8 +372,8 @@ function makeAnswerChip(word, wordI, pos) {
 
   btn.addEventListener('pointerdown', e => {
     if (state.answered) return;
-    startX = e.clientX;
-    startY = e.clientY;
+    startX     = e.clientX;
+    startY     = e.clientY;
     capturedId = e.pointerId;
 
     timer = setTimeout(() => {
@@ -284,10 +383,10 @@ function makeAnswerChip(word, wordI, pos) {
 
       const rect = btn.getBoundingClientRect();
       ghost = document.createElement('span');
-      ghost.className = 'drag-ghost';
+      ghost.className   = 'drag-ghost';
       ghost.textContent = word;
-      ghost.style.left = `${rect.left}px`;
-      ghost.style.top  = `${rect.top}px`;
+      ghost.style.left  = `${rect.left}px`;
+      ghost.style.top   = `${rect.top}px`;
       document.body.appendChild(ghost);
       btn.classList.add('dragging');
     }, 380);
@@ -295,8 +394,7 @@ function makeAnswerChip(word, wordI, pos) {
 
   btn.addEventListener('pointermove', e => {
     if (!dragging) {
-      if (Math.hypot(e.clientX - startX, e.clientY - startY) > 8)
-        clearTimeout(timer);
+      if (Math.hypot(e.clientX - startX, e.clientY - startY) > 8) clearTimeout(timer);
       return;
     }
     if (ghost) {
@@ -308,21 +406,43 @@ function makeAnswerChip(word, wordI, pos) {
   btn.addEventListener('pointerup', e => {
     if (!dragging) {
       cleanup();
-      returnWord(wordI);   // simple tap → remove
+      returnWord(wordI);
       return;
     }
 
     const fromPos = parseInt(btn.dataset.ansPos);
+    const dropX   = e.clientX;
+    const dropY   = e.clientY;
     cleanup();
 
-    // Find target answer chip under pointer
-    const under = document.elementsFromPoint(e.clientX, e.clientY);
-    const target = under.find(
-      el => el !== btn && el.classList.contains('wchip-ans') && el.dataset.ansPos !== undefined
-    );
+    // getBoundingClientRect scan avoids pointer-capture hit-testing issues
+    const chips = [...document.querySelectorAll('.wchip-ans')];
+    let targetChip = null;
 
-    if (target) {
-      const toPos = parseInt(target.dataset.ansPos);
+    for (const chip of chips) {
+      if (chip === btn) continue;
+      const r = chip.getBoundingClientRect();
+      if (dropX >= r.left && dropX <= r.right && dropY >= r.top && dropY <= r.bottom) {
+        targetChip = chip;
+        break;
+      }
+    }
+
+    // Fallback: nearest chip center within 80px
+    if (!targetChip) {
+      let minDist = 80;
+      for (const chip of chips) {
+        if (chip === btn) continue;
+        const r  = chip.getBoundingClientRect();
+        const cx = (r.left + r.right) / 2;
+        const cy = (r.top  + r.bottom) / 2;
+        const d  = Math.hypot(dropX - cx, dropY - cy);
+        if (d < minDist) { minDist = d; targetChip = chip; }
+      }
+    }
+
+    if (targetChip) {
+      const toPos = parseInt(targetChip.dataset.ansPos);
       if (!isNaN(toPos) && fromPos !== toPos) {
         const [item] = state.excAnswer.splice(fromPos, 1);
         state.excAnswer.splice(toPos > fromPos ? toPos - 1 : toPos, 0, item);
@@ -358,9 +478,9 @@ $('check-btn').addEventListener('click', () => {
   state.answered = true;
   $('check-btn').disabled = true;
 
-  const q        = state.queue[state.idx];
+  const q         = state.queue[state.idx];
   const assembled = assembleSentence(q);
-  const isOK     = normalize(assembled) === normalize(q.answer);
+  const isOK      = normalize(assembled) === normalize(q.answer);
 
   state.scores[q.section].t++;
   if (isOK) state.scores[q.section].c++;
@@ -385,8 +505,8 @@ function showFeedback({ isOK, headText, fixText, correctedText, traText, expText
   const tra  = $('fb-tra');
   const exp  = $('fb-exp');
 
-  fb.className   = `fb-card show ${isOK ? 'ok' : 'ng'}`;
-  head.className = `fb-head ${isOK ? 'ok' : 'ng'}`;
+  fb.className     = `fb-card show ${isOK ? 'ok' : 'ng'}`;
+  head.className   = `fb-head ${isOK ? 'ok' : 'ng'}`;
   head.textContent = headText;
 
   if (fixText)       { fix.textContent = fixText; fix.style.display = ''; }
