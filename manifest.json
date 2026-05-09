@@ -1,12 +1,12 @@
 {
-  "name": "英単語学習",
-  "short_name": "英単語",
-  "description": "英検対応英単語学習PWA（フラッシュカード）",
+  "name": "英語時制マスター STEP 01",
+  "short_name": "時制マスター",
+  "description": "STEP 01 時制 — 大学入試英語の時制問題演習PWA",
   "start_url": "./",
   "display": "standalone",
   "orientation": "portrait-primary",
-  "background_color": "#0f0f1e",
-  "theme_color": "#0f0f1e",
+  "background_color": "#F0F4FF",
+  "theme_color": "#4F46E5",
   "icons": [
     {
       "src": "icon.svg",

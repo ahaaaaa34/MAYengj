@@ -3,345 +3,350 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="theme-color" content="#0f0f1e">
-  <title>英単語学習</title>
-  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#4F46E5">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="英単語">
-  <link rel="apple-touch-icon" href="icon.svg">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="時制マスター">
+  <title>英語時制マスター STEP 01</title>
+  <link rel="manifest" href="manifest.json">
   <style>
     *, *::before, *::after {
       box-sizing: border-box; margin: 0; padding: 0;
       -webkit-tap-highlight-color: transparent;
       touch-action: manipulation;
     }
-    html, body {
-      height: 100%; width: 100%; overflow: hidden;
-      font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
-      background: #0f0f1e; color: #f0f0ff;
+    :root {
+      --p: #4F46E5; --pd: #3730A3; --pl: #EEF2FF;
+      --ok: #059669; --ok-bg: #D1FAE5;
+      --ng: #DC2626; --ng-bg: #FEE2E2;
+      --bg: #F0F4FF; --card: #fff;
+      --tx: #1E293B; --mu: #64748B; --br: #E2E8F0;
+      --r: 14px;
+    }
+    html, body { min-height: 100%; background: var(--bg); color: var(--tx); line-height: 1.6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans JP', sans-serif; }
+    .screen { display: none; min-height: 100vh; }
+    .screen.active { display: block; }
+
+    /* ── HOME ── */
+    .home-hero {
+      background: linear-gradient(135deg, #4F46E5, #7C3AED);
+      color: #fff; text-align: center;
+      padding: 52px 24px 36px;
+    }
+    .home-hero h1 { font-size: 26px; font-weight: 800; margin-bottom: 6px; letter-spacing: -.5px; }
+    .home-hero p  { font-size: 13px; opacity: .85; }
+    .home-body { max-width: 480px; margin: 0 auto; padding: 22px 16px 48px; }
+
+    .sec-lbl { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--mu); margin-bottom: 10px; margin-top: 0; }
+    .sec-card {
+      background: var(--card); border-radius: var(--r); padding: 14px 16px;
+      margin-bottom: 10px; display: flex; align-items: center; gap: 14px;
+      cursor: pointer; border: 2px solid var(--br);
+      transition: border-color .15s, background .15s; user-select: none;
+    }
+    .sec-card.on { border-color: var(--p); background: var(--pl); }
+    .chk {
+      width: 24px; height: 24px; border-radius: 7px; border: 2px solid var(--br);
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+      transition: all .15s;
+    }
+    .sec-card.on .chk { background: var(--p); border-color: var(--p); }
+    .chk svg { display: none; }
+    .sec-card.on .chk svg { display: block; }
+    .sec-info { flex: 1; }
+    .sec-name { font-size: 15px; font-weight: 600; }
+    .sec-sub  { font-size: 12px; color: var(--mu); }
+    .sec-tag  { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 20px; flex-shrink: 0; }
+    .tag-f { background: #FEF3C7; color: #92400E; }
+    .tag-a { background: #DBEAFE; color: #1E40AF; }
+    .tag-b { background: #FCE7F3; color: #9D174D; }
+    .tag-c { background: #D1FAE5; color: #065F46; }
+
+    .start-btn {
+      display: block; width: 100%; padding: 18px; border-radius: var(--r); border: none;
+      background: var(--p); color: #fff; font-size: 17px; font-weight: 700; cursor: pointer;
+      margin-top: 24px; font-family: inherit;
+      box-shadow: 0 4px 14px rgba(79,70,229,.35);
+      transition: background .15s, transform .1s;
+    }
+    .start-btn:active { transform: scale(.98); }
+    .start-btn:disabled { opacity: .45; cursor: default; transform: none; }
+    .prev-card {
+      background: var(--card); border-radius: var(--r); padding: 13px 16px;
+      margin-top: 14px; display: flex; align-items: center; justify-content: space-between;
+      border: 1px solid var(--br);
+    }
+    .prev-card .lbl { font-size: 13px; color: var(--mu); }
+    .prev-card .val { font-size: 15px; font-weight: 700; color: var(--p); }
+
+    /* ── QUIZ ── */
+    .quiz-top {
+      background: var(--card); padding: 10px 16px;
+      display: flex; align-items: center; gap: 12px;
+      border-bottom: 1px solid var(--br);
+      position: sticky; top: 0; z-index: 10;
+    }
+    .back-btn {
+      background: none; border: none; color: var(--mu); cursor: pointer;
+      padding: 6px; border-radius: 8px; display: flex; align-items: center; flex-shrink: 0;
+    }
+    .prog-wrap { flex: 1; }
+    .prog-txt  { font-size: 12px; color: var(--mu); margin-bottom: 4px; }
+    .prog-bar  { height: 5px; background: var(--br); border-radius: 3px; overflow: hidden; }
+    .prog-fill { height: 100%; background: linear-gradient(90deg, var(--p), #7C3AED); border-radius: 3px; transition: width .35s ease; }
+
+    .quiz-body { max-width: 480px; margin: 0 auto; padding: 18px 16px 48px; }
+    .q-meta { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+    .q-tag  { font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 20px; }
+    .q-src  { font-size: 11px; color: var(--mu); background: var(--bg); padding: 3px 9px; border-radius: 20px; }
+
+    .q-card {
+      background: var(--card); border-radius: var(--r); padding: 20px; margin-bottom: 14px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.08);
+    }
+    .q-text { font-size: 16px; line-height: 1.85; }
+    .q-text .blank {
+      display: inline-block; background: var(--pl); color: var(--p);
+      padding: 1px 10px; border-radius: 5px; font-weight: 700;
+    }
+    .num-part { color: var(--p); font-weight: 700; }
+    .q-ja { font-size: 13px; color: var(--mu); padding-top: 10px; margin-top: 10px; border-top: 1px solid var(--br); display: none; }
+
+    /* ExC frame context */
+    .exc-context {
+      font-size: 14px; color: var(--mu); background: var(--bg);
+      padding: 10px 14px; border-radius: 9px; margin-bottom: 12px; line-height: 1.7;
+    }
+    .exc-context .ctx-blank {
+      display: inline-block; background: var(--pl); color: var(--p);
+      padding: 1px 14px; border-radius: 5px; font-weight: 700; margin: 0 2px;
     }
 
-    /* ─── SCREENS ─── */
-    .screen { position: fixed; inset: 0; display: none; flex-direction: column; }
-    .screen.active { display: flex; }
+    /* Options */
+    .opts { display: flex; flex-direction: column; gap: 9px; }
+    .opt-btn {
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px 16px; background: var(--card); border: 2px solid var(--br);
+      border-radius: var(--r); cursor: pointer; text-align: left;
+      font-size: 15px; font-family: inherit;
+      transition: border-color .12s, background .12s;
+      box-shadow: 0 1px 2px rgba(0,0,0,.05);
+    }
+    .opt-btn:hover:not(:disabled) { border-color: var(--p); background: var(--pl); }
+    .opt-btn:disabled { cursor: default; }
+    .opt-num {
+      width: 30px; height: 30px; border-radius: 50%; background: var(--bg);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 700; color: var(--mu); flex-shrink: 0;
+      transition: background .12s, color .12s;
+    }
+    .opt-btn.correct { border-color: var(--ok); background: var(--ok-bg); }
+    .opt-btn.correct .opt-num { background: var(--ok); color: #fff; }
+    .opt-btn.wrong { border-color: var(--ng); background: var(--ng-bg); }
+    .opt-btn.wrong .opt-num { background: var(--ng); color: #fff; }
 
-    /* ════════ HOME ════════ */
-    #screen-home {
-      background: linear-gradient(160deg, #0f0f1e 0%, #1a1a35 100%);
-      align-items: center; justify-content: center;
-      padding: env(safe-area-inset-top,44px) 24px env(safe-area-inset-bottom,24px);
-      gap: 0;
+    /* Feedback */
+    .fb-card {
+      border-radius: var(--r); padding: 16px 18px; margin-top: 12px;
+      border-left: 4px solid; display: none; background: var(--card);
+      box-shadow: 0 1px 3px rgba(0,0,0,.07);
     }
-    .home-logo {
-      font-size: 48px; font-weight: 800; letter-spacing: -1px;
-      background: linear-gradient(135deg, #6ee7f7, #a78bfa);
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-      margin-bottom: 6px;
-    }
-    .home-sub {
-      font-size: 14px; color: #888aaa; margin-bottom: 52px; font-weight: 400;
-    }
-    .home-count {
-      font-size: 13px; color: #6ee7f7; margin-bottom: 32px; font-weight: 600;
-      letter-spacing: 1px; text-transform: uppercase;
-    }
-    .home-btn-group { display: flex; flex-direction: column; gap: 14px; width: 100%; max-width: 320px; }
-    .home-btn {
-      width: 100%; padding: 20px; border-radius: 20px; border: none;
-      font-family: inherit; font-size: 18px; font-weight: 700; cursor: pointer;
-      display: flex; align-items: center; justify-content: space-between;
-      transition: transform .12s, box-shadow .12s;
-    }
-    .home-btn:active { transform: scale(0.96); }
-    .home-btn-primary {
-      background: linear-gradient(135deg, #4f8ef7, #a78bfa);
-      color: #fff;
-      box-shadow: 0 8px 24px rgba(79,142,247,0.35);
-    }
-    .home-btn-secondary {
-      background: rgba(255,255,255,0.06);
-      color: #f0f0ff;
-      border: 1px solid rgba(255,255,255,0.12);
-    }
-    .home-btn-arrow { font-size: 22px; opacity: 0.7; }
+    .fb-card.show { display: block; animation: fadeIn .25s ease; }
+    .fb-card.ok { border-color: var(--ok); }
+    .fb-card.ng { border-color: var(--ng); }
+    .fb-head { font-weight: 700; font-size: 15px; display: flex; align-items: flex-start; gap: 7px; margin-bottom: 10px; flex-wrap: wrap; }
+    .fb-head.ok { color: var(--ok); }
+    .fb-head.ng { color: var(--ng); }
+    .fb-fix { background: var(--bg); border-radius: 8px; padding: 8px 12px; font-size: 14px; font-weight: 600; margin-bottom: 10px; display: none; }
+    .fb-tra { font-size: 13px; font-weight: 600; color: var(--p); margin-bottom: 8px; display: none; }
+    .fb-exp { font-size: 13px; color: var(--mu); line-height: 1.75; }
 
-    /* ════════ FLASHCARD ════════ */
-    #screen-fc {
-      background: linear-gradient(160deg, #0f0f1e 0%, #1a1a35 100%);
-      padding: env(safe-area-inset-top,44px) 0 0;
+    /* ExC reveal */
+    .exc-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+    .exc-chip { background: var(--pl); color: var(--p); padding: 6px 13px; border-radius: 20px; font-size: 14px; font-weight: 500; }
+    .reveal-btn {
+      width: 100%; padding: 14px; background: #fff; color: var(--p);
+      border: 2px solid var(--p); border-radius: var(--r);
+      font-size: 15px; font-weight: 600; cursor: pointer; font-family: inherit;
+      transition: background .12s, color .12s;
     }
+    .reveal-btn:hover { background: var(--p); color: #fff; }
+    .ans-reveal {
+      background: var(--ok-bg); border-radius: var(--r); padding: 16px 18px;
+      margin-top: 12px; display: none;
+    }
+    .ans-reveal.show { display: block; animation: fadeIn .25s ease; }
+    .ans-sent { font-size: 15px; font-weight: 700; color: var(--ok); margin-bottom: 8px; }
+    .ans-note { font-size: 12px; background: #fff; padding: 5px 10px; border-radius: 6px; margin-bottom: 8px; color: #065F46; display: none; }
+    .ans-exp  { font-size: 13px; color: #065F46; line-height: 1.75; }
 
-    /* Header */
-    .fc-header {
-      display: flex; align-items: center; padding: 8px 16px 8px;
-      flex-shrink: 0; gap: 12px;
+    /* Next button */
+    .next-btn {
+      display: none; width: 100%; padding: 16px; border-radius: var(--r); border: none;
+      background: var(--p); color: #fff; font-size: 16px; font-weight: 700;
+      cursor: pointer; margin-top: 14px; font-family: inherit;
+      box-shadow: 0 4px 14px rgba(79,70,229,.3);
+      transition: background .12s, transform .1s;
     }
-    .fc-back-btn {
-      background: none; border: none; color: #888aaa; font-size: 28px;
-      cursor: pointer; padding: 4px; line-height: 1; font-family: inherit;
-    }
-    .fc-progress-text {
-      font-size: 14px; font-weight: 600; color: #888aaa; flex: 1; text-align: center;
-    }
-    .fc-spacer { width: 36px; }
+    .next-btn.show { display: block; animation: fadeUp .25s ease; }
+    .next-btn:active { transform: scale(.98); }
+    .next-btn:hover { background: var(--pd); }
 
-    /* Progress bar */
-    .fc-bar-bg {
-      height: 3px; background: rgba(255,255,255,0.08); flex-shrink: 0; margin: 0 16px 4px;
-      border-radius: 2px; overflow: hidden;
+    /* ── RESULTS ── */
+    .res-hero { background: linear-gradient(135deg, #4F46E5, #7C3AED); color: #fff; text-align: center; padding: 52px 24px 36px; }
+    .res-hero h2 { font-size: 24px; font-weight: 800; margin-bottom: 20px; }
+    .score-ring {
+      width: 140px; height: 140px; border-radius: 50%;
+      border: 5px solid rgba(255,255,255,.35); background: rgba(255,255,255,.1);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      margin: 0 auto;
     }
-    .fc-bar-fill { height: 100%; background: linear-gradient(90deg,#4f8ef7,#a78bfa); border-radius: 2px; transition: width .3s ease; }
+    .score-big { font-size: 32px; font-weight: 800; line-height: 1; }
+    .score-pct { font-size: 13px; opacity: .8; margin-top: 3px; }
+    .res-body { max-width: 480px; margin: 0 auto; padding: 24px 16px 48px; }
+    .sec-res {
+      background: var(--card); border-radius: var(--r); padding: 14px 16px;
+      margin-bottom: 10px; display: flex; align-items: center; gap: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.07);
+    }
+    .sec-res-name { font-size: 14px; font-weight: 600; flex: 1; }
+    .mini-bar { width: 72px; height: 5px; background: var(--br); border-radius: 3px; overflow: hidden; }
+    .mini-fill { height: 100%; background: var(--p); border-radius: 3px; }
+    .sec-res-score { font-size: 13px; font-weight: 700; color: var(--p); min-width: 52px; text-align: right; }
+    .res-acts { display: flex; gap: 10px; margin-top: 24px; }
+    .btn-sec {
+      flex: 1; padding: 14px; background: #fff; color: var(--p); border: 2px solid var(--p);
+      border-radius: var(--r); font-size: 15px; font-weight: 600; cursor: pointer;
+      font-family: inherit; transition: background .12s;
+    }
+    .btn-sec:hover { background: var(--pl); }
+    .btn-pri {
+      flex: 1; padding: 14px; background: var(--p); color: #fff; border: none;
+      border-radius: var(--r); font-size: 15px; font-weight: 700; cursor: pointer;
+      font-family: inherit; box-shadow: 0 4px 14px rgba(79,70,229,.3);
+      transition: background .12s;
+    }
+    .btn-pri:hover { background: var(--pd); }
 
-    /* Level badge */
-    .fc-level-wrap { text-align: center; padding: 4px 0 8px; flex-shrink: 0; }
-    .level-badge {
-      display: inline-block; padding: 4px 14px; border-radius: 20px;
-      font-size: 12px; font-weight: 700; letter-spacing: .5px;
-    }
-    .lv-3    { background: rgba(79,142,247,0.2); color: #6ee7f7; }
-    .lv-pre2 { background: rgba(167,139,250,0.2); color: #c4b5fd; }
-    .lv-2    { background: rgba(251,146,60,0.2); color: #fbbf24; }
-    .lv-pre1 { background: rgba(248,113,113,0.2); color: #f87171; }
-
-    /* Card area */
-    .fc-card-wrap {
-      flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center;
-      padding: 8px 20px;
-      perspective: 1000px;
-    }
-    .fc-card {
-      width: 100%; max-width: 420px;
-      height: 100%;
-      position: relative;
-      cursor: pointer;
-    }
-
-    .fc-face {
-      position: absolute; inset: 0;
-      border-radius: 28px;
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      padding: 32px 28px;
-    }
-    .fc-front {
-      background: linear-gradient(145deg, #1e1e38, #262645);
-      border: 1px solid rgba(255,255,255,0.08);
-      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-    }
-    .fc-back {
-      background: linear-gradient(145deg, #1e2e3a, #1a2f45);
-      border: 1px solid rgba(110,231,247,0.15);
-      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-      justify-content: flex-start;
-      overflow-y: auto;
-      padding-top: 36px;
-      display: none;
-    }
-
-    .fc-hint { font-size: 13px; color: #555577; margin-bottom: 20px; font-weight: 400; }
-    #fc-front-word {
-      font-size: clamp(32px, 8vw, 52px);
-      font-weight: 800;
-      color: #f0f0ff;
-      text-align: center;
-      letter-spacing: -1px;
-      line-height: 1.15;
-    }
-    #fc-back-answer {
-      font-size: clamp(28px, 7vw, 44px);
-      font-weight: 800;
-      color: #6ee7f7;
-      text-align: center;
-      letter-spacing: -0.5px;
-      margin-bottom: 20px;
-      width: 100%;
-    }
-    #fc-back-ex {
-      font-size: 14px; font-weight: 400; color: #9999bb; line-height: 1.7;
-      text-align: left; width: 100%;
-      border-top: 1px solid rgba(255,255,255,0.06);
-      padding-top: 16px; margin-top: 4px;
-    }
-    #fc-back-ex mark {
-      background: none;
-      color: #fbbf24;
-      font-weight: 700;
-    }
-    #fc-back-exja {
-      font-size: 12px; font-weight: 400; color: #666688; line-height: 1.6;
-      text-align: left; width: 100%;
-      margin-top: 6px;
-      font-style: italic;
-    }
-    .speak-btn {
-      background: none; border: none; cursor: pointer;
-      font-size: 22px; padding: 8px; margin-top: 12px;
-      opacity: 0.55; transition: opacity .15s, transform .1s;
-      line-height: 1; flex-shrink: 0;
-    }
-    .speak-btn:active { opacity: 1; transform: scale(1.2); }
-    .speak-btn-back { margin-top: 0; margin-bottom: 4px; align-self: flex-end; }
-
-    /* Bottom buttons */
-    .fc-bottom {
-      flex-shrink: 0; padding: 12px 20px;
-      padding-bottom: calc(12px + env(safe-area-inset-bottom, 16px));
-    }
-    #fc-btn-show {
-      width: 100%; padding: 18px; border-radius: 18px; border: none;
-      background: rgba(255,255,255,0.07);
-      color: #f0f0ff; font-family: inherit; font-size: 16px; font-weight: 600;
-      cursor: pointer; transition: background .12s;
-    }
-    #fc-btn-show:active { background: rgba(255,255,255,0.12); }
-
-    #fc-btn-row {
-      display: none; gap: 12px;
-    }
-    .fc-grade-btn {
-      flex: 1; padding: 18px 10px; border-radius: 18px; border: none;
-      font-family: inherit; font-size: 16px; font-weight: 700;
-      cursor: pointer; transition: transform .1s, box-shadow .1s;
-    }
-    .fc-grade-btn:active { transform: scale(0.95); }
-    #fc-btn-wrong {
-      background: rgba(248,113,113,0.15);
-      color: #f87171;
-      border: 1px solid rgba(248,113,113,0.3);
-    }
-    #fc-btn-correct {
-      background: rgba(74,222,128,0.15);
-      color: #4ade80;
-      border: 1px solid rgba(74,222,128,0.3);
-    }
-
-    /* ════════ RESULT ════════ */
-    #screen-result {
-      background: linear-gradient(160deg, #0f0f1e 0%, #1a1a35 100%);
-      align-items: center; justify-content: center;
-      padding: env(safe-area-inset-top,44px) 24px env(safe-area-inset-bottom,24px);
-      gap: 0;
-    }
-    .res-title {
-      font-size: 32px; font-weight: 800; margin-bottom: 8px;
-      background: linear-gradient(135deg, #6ee7f7, #a78bfa);
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-    }
-    .res-sub { font-size: 14px; color: #888aaa; margin-bottom: 40px; }
-    .res-stats { display: flex; gap: 20px; margin-bottom: 48px; }
-    .res-stat {
-      background: rgba(255,255,255,0.05); border-radius: 20px;
-      padding: 24px 28px; text-align: center;
-      border: 1px solid rgba(255,255,255,0.08);
-      min-width: 100px;
-    }
-    .res-stat-num { font-size: 40px; font-weight: 800; }
-    .res-stat-lbl { font-size: 13px; color: #888aaa; margin-top: 4px; font-weight: 400; }
-    .res-correct .res-stat-num { color: #4ade80; }
-    .res-wrong .res-stat-num { color: #f87171; }
-    .res-btn-group { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 300px; }
-    .res-btn {
-      width: 100%; padding: 18px; border-radius: 18px; border: none;
-      font-family: inherit; font-size: 16px; font-weight: 700; cursor: pointer;
-      transition: transform .1s;
-    }
-    .res-btn:active { transform: scale(0.96); }
-    #btn-retry {
-      background: linear-gradient(135deg, #4f8ef7, #a78bfa);
-      color: #fff;
-      box-shadow: 0 8px 24px rgba(79,142,247,0.35);
-    }
-    #btn-result-home {
-      background: rgba(255,255,255,0.06);
-      color: #f0f0ff;
-      border: 1px solid rgba(255,255,255,0.1);
-    }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes fadeUp { from { opacity:0; transform:translateY(8px); }  to { opacity:1; transform:translateY(0); } }
   </style>
 </head>
 <body>
 
-  <!-- ══════════ HOME ══════════ -->
-  <div id="screen-home" class="screen active">
-    <div class="home-logo">英単語</div>
-    <div class="home-sub">英検対策フラッシュカード</div>
-    <div class="home-count">77 WORDS</div>
-    <div class="home-btn-group">
-      <button id="btn-en-jp" class="home-btn home-btn-primary">
-        <span>英語 → 日本語</span>
-        <span class="home-btn-arrow">→</span>
-      </button>
-      <button id="btn-jp-en" class="home-btn home-btn-secondary">
-        <span>日本語 → 英語</span>
-        <span class="home-btn-arrow">→</span>
-      </button>
+<!-- ════ HOME ════ -->
+<div id="screen-home" class="screen active">
+  <div class="home-hero">
+    <h1>英語時制マスター</h1>
+    <p>STEP 01: 時制 (Tense) — 大学入試対策</p>
+  </div>
+  <div class="home-body">
+    <p class="sec-lbl">学習するセクションを選択</p>
+
+    <div class="sec-card on" data-sec="frames">
+      <div class="chk"><svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M2 6.5L5 9.5L11 3.5" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="sec-info"><div class="sec-name">FRAME（例題）</div><div class="sec-sub">9問 · 時制の基本パターン</div></div>
+      <span class="sec-tag tag-f">基礎</span>
+    </div>
+
+    <div class="sec-card on" data-sec="exA">
+      <div class="chk"><svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M2 6.5L5 9.5L11 3.5" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="sec-info"><div class="sec-name">Exercise A（空所補充）</div><div class="sec-sub">21問 · 最も適切な語句を選ぶ</div></div>
+      <span class="sec-tag tag-a">選択</span>
+    </div>
+
+    <div class="sec-card on" data-sec="exB">
+      <div class="chk"><svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M2 6.5L5 9.5L11 3.5" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="sec-info"><div class="sec-name">Exercise B（誤文訂正）</div><div class="sec-sub">6問 · 誤りを含む番号を選ぶ</div></div>
+      <span class="sec-tag tag-b">誤文</span>
+    </div>
+
+    <div class="sec-card on" data-sec="exC">
+      <div class="chk"><svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M2 6.5L5 9.5L11 3.5" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="sec-info"><div class="sec-name">Exercise C（整序英作文）</div><div class="sec-sub">7問 · 語句を並べかえる（確認問題）</div></div>
+      <span class="sec-tag tag-c">整序</span>
+    </div>
+
+    <button class="start-btn" id="start-btn">スタート →</button>
+    <div id="prev-card" class="prev-card" style="display:none">
+      <span class="lbl">前回のスコア</span>
+      <span class="val" id="prev-val"></span>
+    </div>
+  </div>
+</div>
+
+<!-- ════ QUIZ ════ -->
+<div id="screen-quiz" class="screen">
+  <div class="quiz-top">
+    <button class="back-btn" id="quiz-back">
+      <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+        <path d="M14 17L8 11L14 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+    <div class="prog-wrap">
+      <div class="prog-txt" id="prog-txt">1 / 43</div>
+      <div class="prog-bar"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
     </div>
   </div>
 
-  <!-- ══════════ FLASHCARD ══════════ -->
-  <div id="screen-fc" class="screen">
-    <div class="fc-header">
-      <button class="fc-back-btn" id="btn-back-home">‹</button>
-      <div class="fc-progress-text" id="fc-progress">1 / 77</div>
-      <div class="fc-spacer"></div>
-    </div>
-    <div class="fc-bar-bg">
-      <div class="fc-bar-fill" id="fc-bar" style="width:0%"></div>
-    </div>
-    <div class="fc-level-wrap">
-      <span class="level-badge lv-3" id="fc-level">3級</span>
+  <div class="quiz-body">
+    <div class="q-meta">
+      <span class="q-tag" id="q-tag"></span>
+      <span class="q-src" id="q-src"></span>
     </div>
 
-    <div class="fc-card-wrap">
-      <div class="fc-card" id="fc-card">
-        <!-- FRONT -->
-        <div class="fc-face fc-front">
-          <div class="fc-hint">タップして答えを見る</div>
-          <div id="fc-front-word">species</div>
-          <button class="speak-btn" id="fc-speak-front" title="発音を聞く">📢</button>
-        </div>
-        <!-- BACK -->
-        <div class="fc-face fc-back">
-          <button class="speak-btn speak-btn-back" id="fc-speak-back" title="発音を聞く">📢</button>
-          <div id="fc-back-answer">種</div>
-          <div id="fc-back-ex"></div>
-          <div id="fc-back-exja"></div>
-        </div>
+    <div class="q-card">
+      <div class="q-text" id="q-text"></div>
+      <div class="q-ja"  id="q-ja"></div>
+    </div>
+
+    <!-- FRAME / ExA / ExB options -->
+    <div class="opts" id="opts"></div>
+
+    <!-- ExC zone -->
+    <div id="exc-zone" style="display:none">
+      <div class="exc-context" id="exc-ctx"></div>
+      <div class="exc-chips" id="exc-chips"></div>
+      <button class="reveal-btn" id="reveal-btn">答えを見る</button>
+      <div class="ans-reveal" id="ans-reveal">
+        <div class="ans-sent" id="ans-sent"></div>
+        <div class="ans-note" id="ans-note"></div>
+        <div class="ans-exp"  id="ans-exp"></div>
       </div>
     </div>
 
-    <div class="fc-bottom">
-      <button id="fc-btn-show">答えを見る</button>
-      <div id="fc-btn-row">
-        <button class="fc-grade-btn" id="fc-btn-wrong">✗ わからない</button>
-        <button class="fc-grade-btn" id="fc-btn-correct">✓ わかった</button>
-      </div>
+    <!-- Feedback (choice & exB) -->
+    <div class="fb-card" id="fb-card">
+      <div class="fb-head" id="fb-head"></div>
+      <div class="fb-fix"  id="fb-fix"></div>
+      <div class="fb-tra"  id="fb-tra"></div>
+      <div class="fb-exp"  id="fb-exp"></div>
+    </div>
+
+    <button class="next-btn" id="next-btn">次の問題 →</button>
+  </div>
+</div>
+
+<!-- ════ RESULTS ════ -->
+<div id="screen-results" class="screen">
+  <div class="res-hero">
+    <h2 id="res-h2">クイズ完了！</h2>
+    <div class="score-ring">
+      <div class="score-big" id="score-big">—</div>
+      <div class="score-pct" id="score-pct"></div>
     </div>
   </div>
-
-  <!-- ══════════ RESULT ══════════ -->
-  <div id="screen-result" class="screen">
-    <div class="res-title">完了！</div>
-    <div class="res-sub">セッション終了</div>
-    <div class="res-stats">
-      <div class="res-stat res-correct">
-        <div class="res-stat-num" id="res-correct">0</div>
-        <div class="res-stat-lbl">わかった</div>
-      </div>
-      <div class="res-stat res-wrong">
-        <div class="res-stat-num" id="res-wrong">0</div>
-        <div class="res-stat-lbl">わからない</div>
-      </div>
-    </div>
-    <div class="res-btn-group">
-      <button id="btn-retry-wrong" class="res-btn" style="background:rgba(248,113,113,0.15);color:#f87171;border:1px solid rgba(248,113,113,0.3);">✗ わからなかった単語だけ</button>
-      <button id="btn-retry" class="res-btn">もう一度（全単語）</button>
-      <button id="btn-result-home" class="res-btn">ホームへ</button>
+  <div class="res-body">
+    <p class="sec-lbl" style="margin-top:0">セクション別スコア</p>
+    <div id="sec-results"></div>
+    <div class="res-acts">
+      <button class="btn-sec" id="retry-btn">もう一度</button>
+      <button class="btn-pri" id="home-btn">ホームへ</button>
     </div>
   </div>
+</div>
 
-  <script type="module" src="app.js"></script>
+<script src="data.js"></script>
+<script src="app.js"></script>
 </body>
 </html>

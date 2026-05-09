@@ -1,10 +1,8 @@
-const CACHE = 'vocab-v2';
-const ASSETS = ['./', './index.html', './app.js', './tts.js', './manifest.json', './icon.svg'];
+const CACHE = 'tense-v1';
+const ASSETS = ['./', './index.html', './data.js', './app.js', './manifest.json', './icon.svg'];
 
 self.addEventListener('install', e => {
-  e.waitUntil(
-    caches.open(CACHE).then(c => c.addAll(ASSETS))
-  );
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));
   self.skipWaiting();
 });
 
