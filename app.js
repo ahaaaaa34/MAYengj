@@ -2,15 +2,14 @@
 
 const state = {
   queue: [],
-  fullQueue: [],   // for retry-wrong
+  fullQueue: [],
   idx: 0,
   answered: false,
   scores: {},
   wrongIds: [],
-  // ExC chip state
-  excAllWords: [], // [{word, i}] shuffled order (fixed per question)
+  excAllWords: [],
   excUsed: new Set(),
-  excAnswer: []    // [{word, i}] in picked order
+  excAnswer: []
 };
 
 /* ── Utility ── */
@@ -101,7 +100,7 @@ $('retry-btn').addEventListener('click', () => {
 $('retry-wrong-btn').addEventListener('click', () => {
   const wrongQ = state.fullQueue.filter(q => state.wrongIds.includes(q.id));
   if (!wrongQ.length) return;
-  state.queue     = wrongQ;
+  state.queue = wrongQ;
   state.fullQueue = wrongQ;
   state.idx = 0;
   state.answered = false;
@@ -178,16 +177,19 @@ function selectOption(chosen) {
   const btns = $('opts').querySelectorAll('.opt-btn');
   btns.forEach((btn, i) => {
     btn.disabled = true;
-    if (i === q.answer)       btn.classList.add('correct');
-    else if (i === chosen)    btn.classList.add('wrong');
+    if (i === q.answer)    btn.classList.add('correct');
+    else if (i === chosen) btn.classList.add('wrong');
   });
 
+  // ExB: always show correction + corrected sentence
+  const isExB = q.type === 'exB';
   showFeedback({
     isOK,
     headText: isOK
       ? '✓ 正解！'
-      : `✗ 不正解　正解: ${NUMS[q.answer]} ${q.options[q.answer]}`,
-    fixText:  q.correction  || null,
+      : `✗ 不正解　正解: ${NUMS[q.answer]}`,
+    fixText:       isExB ? q.correction : null,
+    correctedText: isExB ? q.corrected  : null,
     traText:  q.translation ? `[訳] ${q.translation}` : null,
     expText:  q.explanation
   });
@@ -202,18 +204,17 @@ function renderExCQ(q) {
     $('q-ja').style.display = '';
   }
 
-  $('opts').style.display  = 'none';
+  $('opts').style.display     = 'none';
   $('exc-zone').style.display = '';
 
   // Context line
-  const ctxEl = $('exc-ctx');
   let ctxHtml = '';
   if (q.prefix) ctxHtml += `${q.prefix} `;
   ctxHtml += '<span class="ctx-blank">（　　　　　　）</span>';
   if (q.suffix) ctxHtml += /^[.,?!]/.test(q.suffix) ? q.suffix : ` ${q.suffix}`;
-  ctxEl.innerHTML = ctxHtml;
+  $('exc-ctx').innerHTML = ctxHtml;
 
-  // Init chip state — shuffle words
+  // Shuffle and init chip state
   state.excAllWords = shuffle(q.words.map((w, i) => ({ word: w, i })));
   state.excUsed     = new Set();
   state.excAnswer   = [];
@@ -222,25 +223,23 @@ function renderExCQ(q) {
   renderExCChips();
 }
 
+/* ── ExC chip rendering ── */
 function renderExCChips() {
   const buildEl = $('build-area');
   const poolEl  = $('pool-area');
   const hintEl  = $('build-hint');
 
-  // Answer chips
-  // Remove all wchip-ans children (keep the hint span)
+  // Remove old answer chips (keep hint span)
   [...buildEl.querySelectorAll('.wchip-ans')].forEach(el => el.remove());
   hintEl.style.display = state.excAnswer.length ? 'none' : '';
 
-  state.excAnswer.forEach(({ word, i }) => {
-    const btn = document.createElement('button');
-    btn.className   = 'wchip wchip-ans';
-    btn.textContent = word;
-    btn.addEventListener('click', () => returnWord(i));
+  // Answer chips with drag support
+  state.excAnswer.forEach(({ word, i }, pos) => {
+    const btn = makeAnswerChip(word, i, pos);
     buildEl.appendChild(btn);
   });
 
-  // Pool chips (shuffled order, only unused)
+  // Pool chips
   poolEl.innerHTML = '';
   state.excAllWords
     .filter(({ i }) => !state.excUsed.has(i))
@@ -251,6 +250,91 @@ function renderExCChips() {
       btn.addEventListener('click', () => pickWord(i));
       poolEl.appendChild(btn);
     });
+}
+
+/* ── Answer chip factory with long-press drag ── */
+function makeAnswerChip(word, wordI, pos) {
+  const btn = document.createElement('button');
+  btn.className       = 'wchip wchip-ans';
+  btn.textContent     = word;
+  btn.dataset.ansPos  = pos;
+
+  let timer     = null;
+  let dragging  = false;
+  let ghost     = null;
+  let startX, startY, capturedId;
+
+  function cleanup() {
+    clearTimeout(timer);
+    dragging = false;
+    if (ghost) { ghost.remove(); ghost = null; }
+    btn.classList.remove('dragging');
+  }
+
+  btn.addEventListener('pointerdown', e => {
+    if (state.answered) return;
+    startX = e.clientX;
+    startY = e.clientY;
+    capturedId = e.pointerId;
+
+    timer = setTimeout(() => {
+      dragging = true;
+      btn.setPointerCapture(capturedId);
+      if (navigator.vibrate) navigator.vibrate(25);
+
+      const rect = btn.getBoundingClientRect();
+      ghost = document.createElement('span');
+      ghost.className = 'drag-ghost';
+      ghost.textContent = word;
+      ghost.style.left = `${rect.left}px`;
+      ghost.style.top  = `${rect.top}px`;
+      document.body.appendChild(ghost);
+      btn.classList.add('dragging');
+    }, 380);
+  });
+
+  btn.addEventListener('pointermove', e => {
+    if (!dragging) {
+      if (Math.hypot(e.clientX - startX, e.clientY - startY) > 8)
+        clearTimeout(timer);
+      return;
+    }
+    if (ghost) {
+      ghost.style.left = `${e.clientX - ghost.offsetWidth / 2}px`;
+      ghost.style.top  = `${e.clientY - ghost.offsetHeight / 2}px`;
+    }
+  });
+
+  btn.addEventListener('pointerup', e => {
+    if (!dragging) {
+      cleanup();
+      returnWord(wordI);   // simple tap → remove
+      return;
+    }
+
+    const fromPos = parseInt(btn.dataset.ansPos);
+    cleanup();
+
+    // Find target answer chip under pointer
+    const under = document.elementsFromPoint(e.clientX, e.clientY);
+    const target = under.find(
+      el => el !== btn && el.classList.contains('wchip-ans') && el.dataset.ansPos !== undefined
+    );
+
+    if (target) {
+      const toPos = parseInt(target.dataset.ansPos);
+      if (!isNaN(toPos) && fromPos !== toPos) {
+        const [item] = state.excAnswer.splice(fromPos, 1);
+        state.excAnswer.splice(toPos > fromPos ? toPos - 1 : toPos, 0, item);
+        renderExCChips();
+      }
+    }
+  });
+
+  btn.addEventListener('pointercancel', cleanup);
+  btn.addEventListener('contextmenu', e => e.preventDefault());
+
+  return btn;
 }
 
 function pickWord(i) {
@@ -284,18 +368,20 @@ $('check-btn').addEventListener('click', () => {
 
   showFeedback({
     isOK,
-    headText: isOK ? '✓ 正解！' : '✗ 不正解',
-    fixText:  isOK ? null : q.answer,
-    traText:  q.translation ? `[訳] ${q.translation}` : null,
-    expText:  q.explanation
+    headText:      isOK ? '✓ 正解！' : '✗ 不正解',
+    fixText:       isOK ? null : q.answer,
+    correctedText: null,
+    traText:       q.translation ? `[訳] ${q.translation}` : null,
+    expText:       q.explanation
   });
 });
 
 /* ── Shared feedback ── */
-function showFeedback({ isOK, headText, fixText, traText, expText }) {
+function showFeedback({ isOK, headText, fixText, correctedText, traText, expText }) {
   const fb   = $('fb-card');
   const head = $('fb-head');
   const fix  = $('fb-fix');
+  const cor  = $('fb-corrected');
   const tra  = $('fb-tra');
   const exp  = $('fb-exp');
 
@@ -303,11 +389,14 @@ function showFeedback({ isOK, headText, fixText, traText, expText }) {
   head.className = `fb-head ${isOK ? 'ok' : 'ng'}`;
   head.textContent = headText;
 
-  if (fixText) { fix.textContent = fixText; fix.style.display = ''; }
-  else           fix.style.display = 'none';
+  if (fixText)       { fix.textContent = fixText; fix.style.display = ''; }
+  else                 fix.style.display = 'none';
 
-  if (traText) { tra.textContent = traText; tra.style.display = ''; }
-  else           tra.style.display = 'none';
+  if (correctedText) { cor.textContent = '✓ ' + correctedText; cor.style.display = ''; }
+  else                 cor.style.display = 'none';
+
+  if (traText)       { tra.textContent = traText; tra.style.display = ''; }
+  else                 tra.style.display = 'none';
 
   exp.textContent = expText;
   $('next-btn').className = 'next-btn show';
@@ -349,7 +438,7 @@ function showResults() {
   ['frames', 'exA', 'exB', 'exC'].forEach(key => {
     const s = state.scores[key];
     if (!s || s.t === 0) return;
-    const p   = Math.round(s.c / s.t * 100);
+    const p    = Math.round(s.c / s.t * 100);
     const card = document.createElement('div');
     card.className = 'sec-res';
     card.innerHTML = `
@@ -359,16 +448,14 @@ function showResults() {
     container.appendChild(card);
   });
 
-  // Wrong-only retry button
   const wrongBtn = $('retry-wrong-btn');
   if (state.wrongIds.length > 0) {
-    wrongBtn.textContent = `✗ 間違えた ${state.wrongIds.length} 問だけもう一度`;
+    wrongBtn.textContent   = `✗ 間違えた ${state.wrongIds.length} 問だけもう一度`;
     wrongBtn.style.display = '';
   } else {
     wrongBtn.style.display = 'none';
   }
 
-  // Save score
   if (totalT > 0) {
     try {
       localStorage.setItem('tense-score', JSON.stringify({ c: totalC, t: totalT, pct }));
