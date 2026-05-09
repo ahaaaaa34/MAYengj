@@ -304,9 +304,7 @@
     .exb-num-btn.selected  { background: var(--ng); border-color: var(--ng); color: white; }
     .exb-num-btn.correct-ans { background: var(--ok); border-color: var(--ok); color: white; }
     .exb-num-btn:disabled  { opacity: .65; cursor: default; }
-    .exb-input-lbl {
-      font-size: 13px; color: var(--mu); margin-bottom: 8px; margin-top: 16px;
-    }
+    .exb-inst { font-size: 13px; color: var(--mu); margin-bottom: 12px; }
     .exb-input-field {
       width: 100%; padding: 12px 14px;
       border: 2px solid var(--br); border-radius: var(--r);
@@ -316,6 +314,35 @@
     }
     .exb-input-field:focus { border-color: var(--p); }
     .exb-input-field:disabled { opacity: .6; background: var(--bg); }
+    .exb-num-result {
+      font-size: 15px; font-weight: 700; padding: 10px 14px;
+      border-radius: 10px; margin-bottom: 14px; text-align: center;
+    }
+    .exb-num-result.ok { background: var(--ok-bg); color: var(--ok); }
+    .exb-num-result.ng { background: var(--ng-bg); color: var(--ng); }
+    .exb-compare {
+      background: var(--bg); border-radius: var(--r);
+      padding: 14px 16px; margin-bottom: 14px;
+      display: flex; flex-direction: column; gap: 12px;
+    }
+    .exb-compare-row { display: flex; align-items: baseline; gap: 12px; }
+    .exb-cmp-lbl {
+      font-size: 11px; font-weight: 700; color: var(--mu);
+      min-width: 48px; text-transform: uppercase; letter-spacing: .05em; flex-shrink: 0;
+    }
+    .exb-cmp-val { font-size: 15px; font-weight: 600; }
+    .exb-cmp-val.ok { color: var(--ok); }
+    .exb-self-q { font-size: 13px; color: var(--mu); text-align: center; margin-bottom: 10px; }
+    .exb-self-btns { display: flex; gap: 10px; }
+    .exb-self-btn {
+      flex: 1; padding: 14px; border-radius: var(--r); border: 2px solid;
+      font-size: 15px; font-weight: 700; cursor: pointer; font-family: inherit;
+      transition: background .12s, color .12s;
+    }
+    .exb-self-btn.ok { border-color: var(--ok); color: var(--ok); background: var(--ok-bg); }
+    .exb-self-btn.ok:hover { background: var(--ok); color: white; }
+    .exb-self-btn.ng { border-color: var(--ng); color: var(--ng); background: var(--ng-bg); }
+    .exb-self-btn.ng:hover { background: var(--ng); color: white; }
     .exb-reveal-btn {
       width: 100%; padding: 13px; background: #fff; color: var(--mu);
       border: 2px solid var(--br); border-radius: var(--r);
@@ -408,14 +435,36 @@
 
     <!-- ExB zone -->
     <div id="exb-zone" style="display:none">
-      <div id="exb-input-area" style="display:none">
-        <p class="exb-input-lbl">正しい形を入力してください</p>
-        <input id="exb-input" class="exb-input-field" type="text"
-          autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false"
-          placeholder="正しい形を入力...">
+      <!-- Phase 1: select number + type correction -->
+      <div id="exb-phase1">
+        <p class="exb-inst">誤りを含む箇所をタップしてください</p>
+        <div id="exb-input-wrap" style="display:none">
+          <input id="exb-input" class="exb-input-field" type="text"
+            autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false"
+            placeholder="正しい形を入力...">
+        </div>
+        <button class="check-btn" id="exb-check-btn" disabled>確認する</button>
+        <button class="exb-reveal-btn" id="exb-reveal-btn">答えを見る</button>
       </div>
-      <button class="check-btn" id="exb-check-btn" disabled>確認する</button>
-      <button class="exb-reveal-btn" id="exb-reveal-btn">答えを見る</button>
+      <!-- Phase 2: comparison + self-judge -->
+      <div id="exb-phase2" style="display:none">
+        <div id="exb-num-result" class="exb-num-result"></div>
+        <div class="exb-compare">
+          <div class="exb-compare-row">
+            <span class="exb-cmp-lbl">あなた</span>
+            <span id="exb-typed-val" class="exb-cmp-val"></span>
+          </div>
+          <div class="exb-compare-row">
+            <span class="exb-cmp-lbl">正解</span>
+            <span id="exb-correct-val" class="exb-cmp-val ok"></span>
+          </div>
+        </div>
+        <p class="exb-self-q">テキストは合ってますか？</p>
+        <div class="exb-self-btns">
+          <button id="exb-self-ok" class="exb-self-btn ok">○ 合ってた</button>
+          <button id="exb-self-ng" class="exb-self-btn ng">✗ 違った</button>
+        </div>
+      </div>
     </div>
 
     <!-- ExC Duolingo zone -->

@@ -10,7 +10,8 @@ const state = {
   excAllWords: [],
   excUsed: new Set(),
   excAnswer: [],
-  excBSelected: null
+  excBSelected: null,
+  excBNumOK: false
 };
 
 /* ── Utility ── */
@@ -216,79 +217,111 @@ function renderExBQ(q) {
       $('q-text').querySelectorAll('.exb-num-btn').forEach(b => {
         b.classList.toggle('selected', parseInt(b.dataset.idx) === state.excBSelected);
       });
-      $('exb-input-area').style.display = '';
+      $('exb-input-wrap').style.display = '';
       $('exb-input').focus();
-      updateExBCheckBtn();
+      $('exb-check-btn').disabled = $('exb-input').value.trim().length === 0;
     });
   });
 
   state.excBSelected = null;
-  $('exb-input-area').style.display = 'none';
+  state.excBNumOK   = false;
+  $('exb-input-wrap').style.display = 'none';
   $('exb-input').value = '';
   $('exb-input').disabled = false;
+  $('exb-phase1').style.display = '';
+  $('exb-phase2').style.display = 'none';
   $('exb-check-btn').disabled = true;
   $('exb-reveal-btn').style.display = '';
   $('exb-zone').style.display = '';
 }
 
-function updateExBCheckBtn() {
-  $('exb-check-btn').disabled =
-    state.excBSelected === null || $('exb-input').value.trim().length === 0;
-}
-
-$('exb-input').addEventListener('input', updateExBCheckBtn);
+$('exb-input').addEventListener('input', () => {
+  if (state.excBSelected !== null)
+    $('exb-check-btn').disabled = $('exb-input').value.trim().length === 0;
+});
 $('exb-input').addEventListener('keydown', e => {
   if (e.key === 'Enter' && !$('exb-check-btn').disabled) $('exb-check-btn').click();
 });
 
 $('exb-check-btn').addEventListener('click', () => {
-  if (state.answered) return;
-  state.answered = true;
-  $('exb-check-btn').disabled = true;
+  if (state.excBSelected === null) return;
 
-  const q           = state.queue[state.idx];
-  const correctNum  = q.answer;
-  const correctForm = normalize(q.correction.split('→')[1] || '');
-  const typed       = normalize($('exb-input').value);
-  const isOK        = state.excBSelected === correctNum && typed === correctForm;
+  const q          = state.queue[state.idx];
+  const NUMS       = ['①', '②', '③', '④'];
+  const correctNum = q.answer;
+  const numOK      = state.excBSelected === correctNum;
+  const correctForm = (q.correction.split('→')[1] || '').trim();
 
-  state.scores[q.section].t++;
-  if (isOK) state.scores[q.section].c++;
-  else      state.wrongIds.push(q.id);
+  state.excBNumOK = numOK;
 
+  // Lock number buttons, highlight correct one
   $('q-text').querySelectorAll('.exb-num-btn').forEach(btn => {
     btn.disabled = true;
     if (parseInt(btn.dataset.idx) === correctNum) btn.classList.add('correct-ans');
   });
   $('exb-input').disabled = true;
-  $('exb-reveal-btn').style.display = 'none';
 
+  // Show number result
+  const numResult = $('exb-num-result');
+  if (numOK) {
+    numResult.textContent = `✓ 番号正解: ${NUMS[state.excBSelected]}`;
+    numResult.className   = 'exb-num-result ok';
+  } else {
+    numResult.textContent = `✗ 番号不正解（正解: ${NUMS[correctNum]}）`;
+    numResult.className   = 'exb-num-result ng';
+  }
+
+  // Show comparison
+  $('exb-typed-val').textContent = $('exb-input').value.trim() || '（未入力）';
+  $('exb-correct-val').textContent = correctForm;
+
+  $('exb-phase1').style.display = 'none';
+  $('exb-phase2').style.display = '';
+});
+
+function resolveExB(textOK) {
+  if (state.answered) return;
+  state.answered = true;
+
+  const q    = state.queue[state.idx];
+  const isOK = state.excBNumOK && textOK;
   const NUMS = ['①', '②', '③', '④'];
+
+  state.scores[q.section].t++;
+  if (isOK) state.scores[q.section].c++;
+  else      state.wrongIds.push(q.id);
+
+  $('exb-phase2').style.display = 'none';
+
   showFeedback({
     isOK,
-    headText:      isOK ? '✓ 正解！' : `✗ 不正解　正解: ${NUMS[correctNum]}`,
-    fixText:       isOK ? null : q.correction,
+    headText:      isOK ? '✓ 正解！' : `✗ 不正解　正解: ${NUMS[q.answer]}`,
+    fixText:       q.correction,
     correctedText: q.corrected,
     traText:  q.translation ? `[訳] ${q.translation}` : null,
     expText:  q.explanation
   });
-});
+}
+
+$('exb-self-ok').addEventListener('click', () => resolveExB(true));
+$('exb-self-ng').addEventListener('click', () => resolveExB(false));
 
 $('exb-reveal-btn').addEventListener('click', () => {
   if (state.answered) return;
   state.answered = true;
 
-  const q = state.queue[state.idx];
+  const q    = state.queue[state.idx];
+  const NUMS = ['①', '②', '③', '④'];
+
   state.scores[q.section].t++;
   state.wrongIds.push(q.id);
 
-  const NUMS = ['①', '②', '③', '④'];
   $('q-text').querySelectorAll('.exb-num-btn').forEach(btn => {
     btn.disabled = true;
     if (parseInt(btn.dataset.idx) === q.answer) btn.classList.add('correct-ans');
   });
-  $('exb-input').disabled = true;
-  $('exb-check-btn').disabled = true;
+  $('exb-phase1').style.display = 'none';
+  $('exb-phase2').style.display = 'none';
 
   showFeedback({
     isOK:          false,
