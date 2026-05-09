@@ -289,6 +289,7 @@ const QUIZ_DATA = {
       options: ['①', '②', '③', '④'],
       answer: 2, source: '学習院大',
       correction: '③ will have → have',
+      corrected: 'We will notify you as soon as we have further information.',
       translation: '私たちがさらに情報を得たらすぐにあなたにお知らせします。',
       explanation: 'as soon as ...「…するとすぐに」は時を表す副詞節を導き，未来のことでも現在形を用いるので，③will haveは現在形haveにする。'
     },
@@ -299,6 +300,7 @@ const QUIZ_DATA = {
       options: ['①', '②', '③', '④'],
       answer: 2, source: '東海大',
       correction: '③ has already been teaching → had already been teaching',
+      corrected: 'When Mr. Brown came to the school in 1980, Ms. Carter had already been teaching there for ten years.',
       translation: 'ブラウン先生が1980年に学校に来たとき，カーター先生はすでにそこで10年間教えていた。',
       explanation: '「ブラウン先生が学校に来た」ときには，カーター先生は「すでに10年間教えていた」ということなので，過去のある時点までの〈動作の継続〉を表すように，③has already been teachingは過去完了進行形のhad already been teachingにする。'
     },
@@ -309,6 +311,7 @@ const QUIZ_DATA = {
       options: ['①', '②', '③', '④'],
       answer: 1, source: '東海大',
       correction: '② will rain → rains',
+      corrected: 'If it rains tomorrow, our athletic meet will be put off.',
       translation: 'もし明日雨が降ったら，私たちの運動会は延期されるだろう。',
       explanation: 'If節は条件を表す副詞節で，tomorrow「明日」という未来のことでも現在形を用いるので，②will rainは現在形のrainsにする。'
     },
@@ -319,6 +322,7 @@ const QUIZ_DATA = {
       options: ['①', '②', '③', '④'],
       answer: 1, source: '麗澤大',
       correction: '② have been sleeping → were sleeping',
+      corrected: 'Many of the passengers were sleeping when the pilot announced they were almost at the destination.',
       translation: 'パイロットがほぼ目的地にいると告げたとき，乗客の多くは眠っていた。',
       explanation: 'when以下は過去のある時点での出来事を表しているので，主節は過去のある時点での進行中の動作を表す過去進行形となるように，②have beenはwereにする。'
     },
@@ -329,6 +333,7 @@ const QUIZ_DATA = {
       options: ['①', '②', '③', '④'],
       answer: 2, source: '上智大',
       correction: '③ has → had',
+      corrected: 'By the 1890s, the movement had spread to Europe and North America.',
       translation: '1890年代までには，その運動はヨーロッパと北アメリカに広まっていた。',
       explanation: 'By the 1890s「1890年代までには」とあるので，過去のある時点までの〈完了〉を表す過去完了形になるように，③hasをhadにする。'
     },
@@ -339,6 +344,7 @@ const QUIZ_DATA = {
       options: ['①', '②', '③', '④'],
       answer: 0, source: '中央大',
       correction: '① has been performed → had been performed',
+      corrected: 'For two years the play had been performed continuously at a small theater in New York, but then was turned into a Hollywood movie, appealing to audiences world wide.',
       translation: 'ニューヨークの小さな劇場で2年間上演され続けていたその劇は，今度は世界中の観客を魅了するハリウッド映画に改編された。',
       explanation: 'had been performed「上演されていた」とwas turned into「改編された」という2つの過去の出来事の時間的な前後関係を明確にするために，前に起こった①has been performedを過去完了形had been performedにする。'
     }

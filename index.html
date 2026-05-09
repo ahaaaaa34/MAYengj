@@ -271,6 +271,25 @@
     .check-btn:disabled { opacity: .45; cursor: default; box-shadow: none; }
     .check-btn:not(:disabled):hover { background: var(--pd); }
 
+    /* ── Drag ghost & dragging state ── */
+    .wchip-ans.dragging { opacity: 0.2; transform: scale(0.94); }
+    .drag-ghost {
+      position: fixed; pointer-events: none; z-index: 9999;
+      background: var(--pd); color: white; border: 2px solid var(--pd);
+      border-radius: 10px; padding: 9px 14px;
+      font-size: 14px; font-weight: 500; font-family: inherit;
+      opacity: 0.92; transform: scale(1.1);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.28);
+      white-space: nowrap;
+    }
+
+    /* ── ExB corrected sentence ── */
+    .fb-corrected {
+      font-size: 14px; background: var(--ok-bg); color: var(--ok);
+      border-radius: 8px; padding: 8px 12px; margin-bottom: 10px;
+      font-weight: 500; display: none;
+    }
+
     /* ── Retry wrong button ── */
     .btn-wrong {
       width: 100%; padding: 14px; border-radius: var(--r);
@@ -365,10 +384,11 @@
 
     <!-- Feedback (choice & exB) -->
     <div class="fb-card" id="fb-card">
-      <div class="fb-head" id="fb-head"></div>
-      <div class="fb-fix"  id="fb-fix"></div>
-      <div class="fb-tra"  id="fb-tra"></div>
-      <div class="fb-exp"  id="fb-exp"></div>
+      <div class="fb-head"      id="fb-head"></div>
+      <div class="fb-fix"       id="fb-fix"></div>
+      <div class="fb-corrected" id="fb-corrected"></div>
+      <div class="fb-tra"       id="fb-tra"></div>
+      <div class="fb-exp"       id="fb-exp"></div>
     </div>
 
     <button class="next-btn" id="next-btn">次の問題 →</button>
