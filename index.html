@@ -230,6 +230,56 @@
 
     @keyframes fadeIn { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }
     @keyframes fadeUp { from { opacity:0; transform:translateY(8px); }  to { opacity:1; transform:translateY(0); } }
+
+    /* ── ExC Duolingo style ── */
+    .build-area {
+      min-height: 68px; background: var(--pl);
+      border: 2px dashed #A5B4FC; border-radius: var(--r);
+      padding: 12px; margin-bottom: 14px;
+      display: flex; flex-wrap: wrap; gap: 8px;
+      align-content: flex-start; position: relative;
+    }
+    .build-hint {
+      color: #A5B4FC; font-size: 13px;
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      white-space: nowrap; pointer-events: none;
+    }
+    .pool-area {
+      display: flex; flex-wrap: wrap; gap: 8px;
+      margin-bottom: 14px; min-height: 44px;
+    }
+    .wchip {
+      padding: 9px 14px; border-radius: 10px;
+      font-size: 14px; font-weight: 500;
+      cursor: pointer; user-select: none;
+      transition: transform .1s, background .12s, border-color .12s;
+      font-family: inherit; line-height: 1.3;
+    }
+    .wchip:active { transform: scale(.93); }
+    .wchip-pool { background: white; border: 2px solid var(--br); color: var(--tx); }
+    .wchip-pool:hover { border-color: var(--p); background: var(--pl); }
+    .wchip-ans { background: var(--p); color: white; border: 2px solid var(--p); }
+    .wchip-ans:hover { background: var(--pd); border-color: var(--pd); }
+    .check-btn {
+      width: 100%; padding: 14px; border-radius: var(--r); border: none;
+      background: var(--p); color: white;
+      font-size: 15px; font-weight: 600; cursor: pointer; font-family: inherit;
+      box-shadow: 0 4px 14px rgba(79,70,229,.3);
+      transition: background .12s, opacity .12s;
+    }
+    .check-btn:disabled { opacity: .45; cursor: default; box-shadow: none; }
+    .check-btn:not(:disabled):hover { background: var(--pd); }
+
+    /* ── Retry wrong button ── */
+    .btn-wrong {
+      width: 100%; padding: 14px; border-radius: var(--r);
+      background: rgba(220,38,38,.08); color: var(--ng);
+      border: 2px solid rgba(220,38,38,.3);
+      font-size: 15px; font-weight: 600; cursor: pointer; font-family: inherit;
+      margin-bottom: 10px; transition: background .12s;
+    }
+    .btn-wrong:hover { background: rgba(220,38,38,.15); }
   </style>
 </head>
 <body>
@@ -303,16 +353,14 @@
     <!-- FRAME / ExA / ExB options -->
     <div class="opts" id="opts"></div>
 
-    <!-- ExC zone -->
+    <!-- ExC Duolingo zone -->
     <div id="exc-zone" style="display:none">
       <div class="exc-context" id="exc-ctx"></div>
-      <div class="exc-chips" id="exc-chips"></div>
-      <button class="reveal-btn" id="reveal-btn">答えを見る</button>
-      <div class="ans-reveal" id="ans-reveal">
-        <div class="ans-sent" id="ans-sent"></div>
-        <div class="ans-note" id="ans-note"></div>
-        <div class="ans-exp"  id="ans-exp"></div>
+      <div class="build-area" id="build-area">
+        <span class="build-hint" id="build-hint">ここに並べてください</span>
       </div>
+      <div class="pool-area" id="pool-area"></div>
+      <button class="check-btn" id="check-btn" disabled>確認する</button>
     </div>
 
     <!-- Feedback (choice & exB) -->
@@ -339,6 +387,7 @@
   <div class="res-body">
     <p class="sec-lbl" style="margin-top:0">セクション別スコア</p>
     <div id="sec-results"></div>
+    <button id="retry-wrong-btn" class="btn-wrong" style="display:none">✗ 間違えた問題のみ</button>
     <div class="res-acts">
       <button class="btn-sec" id="retry-btn">もう一度</button>
       <button class="btn-pri" id="home-btn">ホームへ</button>

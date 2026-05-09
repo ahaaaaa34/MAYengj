@@ -2,9 +2,15 @@
 
 const state = {
   queue: [],
+  fullQueue: [],   // for retry-wrong
   idx: 0,
   answered: false,
-  scores: {}   // section → { c, t }
+  scores: {},
+  wrongIds: [],
+  // ExC chip state
+  excAllWords: [], // [{word, i}] shuffled order (fixed per question)
+  excUsed: new Set(),
+  excAnswer: []    // [{word, i}] in picked order
 };
 
 /* ── Utility ── */
@@ -14,6 +20,26 @@ function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   $(id).classList.add('active');
   window.scrollTo(0, 0);
+}
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function normalize(s) {
+  return s.toLowerCase().replace(/\s+/g, ' ').trim();
+}
+
+function assembleSentence(q) {
+  let s = q.prefix ? q.prefix + ' ' : '';
+  s += state.excAnswer.map(x => x.word).join(' ');
+  if (q.suffix) s += /^[.,?!]/.test(q.suffix) ? q.suffix : ' ' + q.suffix;
+  return s.trim();
 }
 
 /* ── Section toggle ── */
@@ -44,31 +70,54 @@ $('start-btn').addEventListener('click', () => {
   if (!q.length) return;
 
   state.queue = q;
+  state.fullQueue = q;
   state.idx = 0;
   state.answered = false;
+  state.wrongIds = [];
   state.scores = {};
   q.forEach(item => {
-    if (!state.scores[item.section]) state.scores[item.section] = { c: 0, t: 0, name: item.sectionName };
+    if (!state.scores[item.section])
+      state.scores[item.section] = { c: 0, t: 0, name: item.sectionName };
   });
 
   showScreen('screen-quiz');
   renderQ();
 });
 
-/* ── Back to home ── */
+/* ── Navigation ── */
 $('quiz-back').addEventListener('click', () => showScreen('screen-home'));
 $('home-btn').addEventListener('click', () => showScreen('screen-home'));
+
 $('retry-btn').addEventListener('click', () => {
+  state.queue = [...state.fullQueue];
   state.idx = 0;
   state.answered = false;
+  state.wrongIds = [];
   Object.values(state.scores).forEach(s => { s.c = 0; s.t = 0; });
+  showScreen('screen-quiz');
+  renderQ();
+});
+
+$('retry-wrong-btn').addEventListener('click', () => {
+  const wrongQ = state.fullQueue.filter(q => state.wrongIds.includes(q.id));
+  if (!wrongQ.length) return;
+  state.queue     = wrongQ;
+  state.fullQueue = wrongQ;
+  state.idx = 0;
+  state.answered = false;
+  state.wrongIds = [];
+  state.scores = {};
+  wrongQ.forEach(item => {
+    if (!state.scores[item.section])
+      state.scores[item.section] = { c: 0, t: 0, name: item.sectionName };
+  });
   showScreen('screen-quiz');
   renderQ();
 });
 
 /* ── Render question ── */
 function renderQ() {
-  const q = state.queue[state.idx];
+  const q     = state.queue[state.idx];
   const total = state.queue.length;
   const cur   = state.idx + 1;
 
@@ -80,12 +129,10 @@ function renderQ() {
   tag.className   = 'q-tag ' + q.tagClass;
   $('q-src').textContent = q.source ? `〈${q.source}〉` : '';
 
-  // Reset shared UI
   $('opts').innerHTML = '';
   $('opts').style.display = '';
   $('exc-zone').style.display = 'none';
-  const fb = $('fb-card');
-  fb.className = 'fb-card';
+  $('fb-card').className = 'fb-card';
   $('next-btn').className = 'next-btn';
   $('q-ja').style.display = 'none';
   state.answered = false;
@@ -99,10 +146,7 @@ function renderQ() {
 
 /* ── Choice / ExB ── */
 function renderChoiceQ(q) {
-  let html = q.question;
-  // Render blank
-  html = html.replace(/\(\s*\)/g, '<span class="blank">(　　　)</span>');
-  // Style circled numbers in ExB
+  let html = q.question.replace(/\(\s*\)/g, '<span class="blank">(　　　)</span>');
   if (q.type === 'exB') {
     html = html.replace(/([①②③④])/g, '<span class="num-part">$1</span>');
   }
@@ -123,120 +167,151 @@ function selectOption(chosen) {
   if (state.answered) return;
   state.answered = true;
 
-  const q      = state.queue[state.idx];
-  const isOK   = chosen === q.answer;
-  const NUMS   = ['①', '②', '③', '④'];
+  const q    = state.queue[state.idx];
+  const isOK = chosen === q.answer;
+  const NUMS = ['①', '②', '③', '④'];
 
-  // Update score
   state.scores[q.section].t++;
   if (isOK) state.scores[q.section].c++;
+  else      state.wrongIds.push(q.id);
 
-  // Mark buttons
   const btns = $('opts').querySelectorAll('.opt-btn');
   btns.forEach((btn, i) => {
     btn.disabled = true;
-    if (i === q.answer) btn.classList.add('correct');
-    else if (i === chosen) btn.classList.add('wrong');
+    if (i === q.answer)       btn.classList.add('correct');
+    else if (i === chosen)    btn.classList.add('wrong');
   });
 
-  // Build feedback
+  showFeedback({
+    isOK,
+    headText: isOK
+      ? '✓ 正解！'
+      : `✗ 不正解　正解: ${NUMS[q.answer]} ${q.options[q.answer]}`,
+    fixText:  q.correction  || null,
+    traText:  q.translation ? `[訳] ${q.translation}` : null,
+    expText:  q.explanation
+  });
+}
+
+/* ── ExC ── */
+function renderExCQ(q) {
+  $('q-text').innerHTML = q.japanese || '語句を並べかえて英文を完成させなさい。';
+
+  if (!q.japanese && q.translation) {
+    $('q-ja').textContent   = `[意味] ${q.translation}`;
+    $('q-ja').style.display = '';
+  }
+
+  $('opts').style.display  = 'none';
+  $('exc-zone').style.display = '';
+
+  // Context line
+  const ctxEl = $('exc-ctx');
+  let ctxHtml = '';
+  if (q.prefix) ctxHtml += `${q.prefix} `;
+  ctxHtml += '<span class="ctx-blank">（　　　　　　）</span>';
+  if (q.suffix) ctxHtml += /^[.,?!]/.test(q.suffix) ? q.suffix : ` ${q.suffix}`;
+  ctxEl.innerHTML = ctxHtml;
+
+  // Init chip state — shuffle words
+  state.excAllWords = shuffle(q.words.map((w, i) => ({ word: w, i })));
+  state.excUsed     = new Set();
+  state.excAnswer   = [];
+
+  $('check-btn').disabled = true;
+  renderExCChips();
+}
+
+function renderExCChips() {
+  const buildEl = $('build-area');
+  const poolEl  = $('pool-area');
+  const hintEl  = $('build-hint');
+
+  // Answer chips
+  // Remove all wchip-ans children (keep the hint span)
+  [...buildEl.querySelectorAll('.wchip-ans')].forEach(el => el.remove());
+  hintEl.style.display = state.excAnswer.length ? 'none' : '';
+
+  state.excAnswer.forEach(({ word, i }) => {
+    const btn = document.createElement('button');
+    btn.className   = 'wchip wchip-ans';
+    btn.textContent = word;
+    btn.addEventListener('click', () => returnWord(i));
+    buildEl.appendChild(btn);
+  });
+
+  // Pool chips (shuffled order, only unused)
+  poolEl.innerHTML = '';
+  state.excAllWords
+    .filter(({ i }) => !state.excUsed.has(i))
+    .forEach(({ word, i }) => {
+      const btn = document.createElement('button');
+      btn.className   = 'wchip wchip-pool';
+      btn.textContent = word;
+      btn.addEventListener('click', () => pickWord(i));
+      poolEl.appendChild(btn);
+    });
+}
+
+function pickWord(i) {
+  if (state.excUsed.has(i)) return;
+  const item = state.excAllWords.find(x => x.i === i);
+  state.excUsed.add(i);
+  state.excAnswer.push({ word: item.word, i });
+  renderExCChips();
+  $('check-btn').disabled = false;
+}
+
+function returnWord(i) {
+  state.excUsed.delete(i);
+  state.excAnswer = state.excAnswer.filter(x => x.i !== i);
+  renderExCChips();
+  if (state.excAnswer.length === 0) $('check-btn').disabled = true;
+}
+
+$('check-btn').addEventListener('click', () => {
+  if (state.answered) return;
+  state.answered = true;
+  $('check-btn').disabled = true;
+
+  const q        = state.queue[state.idx];
+  const assembled = assembleSentence(q);
+  const isOK     = normalize(assembled) === normalize(q.answer);
+
+  state.scores[q.section].t++;
+  if (isOK) state.scores[q.section].c++;
+  else      state.wrongIds.push(q.id);
+
+  showFeedback({
+    isOK,
+    headText: isOK ? '✓ 正解！' : '✗ 不正解',
+    fixText:  isOK ? null : q.answer,
+    traText:  q.translation ? `[訳] ${q.translation}` : null,
+    expText:  q.explanation
+  });
+});
+
+/* ── Shared feedback ── */
+function showFeedback({ isOK, headText, fixText, traText, expText }) {
   const fb   = $('fb-card');
   const head = $('fb-head');
   const fix  = $('fb-fix');
   const tra  = $('fb-tra');
   const exp  = $('fb-exp');
 
-  fb.className  = `fb-card show ${isOK ? 'ok' : 'ng'}`;
+  fb.className   = `fb-card show ${isOK ? 'ok' : 'ng'}`;
   head.className = `fb-head ${isOK ? 'ok' : 'ng'}`;
+  head.textContent = headText;
 
-  if (isOK) {
-    head.textContent = '✓ 正解！';
-  } else {
-    head.textContent = `✗ 不正解　正解: ${NUMS[q.answer]} ${q.options[q.answer]}`;
-  }
+  if (fixText) { fix.textContent = fixText; fix.style.display = ''; }
+  else           fix.style.display = 'none';
 
-  if (q.correction) {
-    fix.textContent   = q.correction;
-    fix.style.display = '';
-  } else {
-    fix.style.display = 'none';
-  }
+  if (traText) { tra.textContent = traText; tra.style.display = ''; }
+  else           tra.style.display = 'none';
 
-  if (q.translation) {
-    tra.textContent   = `[訳] ${q.translation}`;
-    tra.style.display = '';
-  } else {
-    tra.style.display = 'none';
-  }
-
-  exp.textContent = q.explanation;
+  exp.textContent = expText;
   $('next-btn').className = 'next-btn show';
 }
-
-/* ── ExC ── */
-function renderExCQ(q) {
-  // Question text (Japanese instruction or generic)
-  $('q-text').innerHTML = q.japanese
-    ? q.japanese
-    : '語句を並べかえて英文を完成させなさい。';
-
-  // Show translation hint for questions with no Japanese but have translation
-  if (!q.japanese && q.translation) {
-    $('q-ja').textContent  = `[意味] ${q.translation}`;
-    $('q-ja').style.display = '';
-  }
-
-  // Hide options, show ExC zone
-  $('opts').style.display = 'none';
-  $('exc-zone').style.display = '';
-
-  // Context sentence frame
-  const ctxEl = $('exc-ctx');
-  let ctxHtml = '';
-  if (q.prefix) ctxHtml += `${q.prefix} `;
-  ctxHtml += '<span class="ctx-blank">（　　　　　　）</span>';
-  if (q.suffix) ctxHtml += ` ${q.suffix}`;
-  ctxEl.innerHTML = ctxHtml;
-
-  // Word chips
-  const chipsEl = $('exc-chips');
-  chipsEl.innerHTML = '';
-  q.words.forEach(w => {
-    const span = document.createElement('span');
-    span.className   = 'exc-chip';
-    span.textContent = w;
-    chipsEl.appendChild(span);
-  });
-
-  // Reset reveal
-  $('ans-reveal').className = 'ans-reveal';
-  $('reveal-btn').style.display = '';
-  $('next-btn').className = 'next-btn';
-}
-
-$('reveal-btn').addEventListener('click', () => {
-  if (state.answered) return;
-  state.answered = true;
-
-  const q = state.queue[state.idx];
-  // Count ExC completions
-  state.scores[q.section].t++;
-
-  $('ans-sent').textContent = q.answer;
-
-  const noteEl = $('ans-note');
-  if (q.note) {
-    noteEl.textContent   = `※ ${q.note}`;
-    noteEl.style.display = '';
-  } else {
-    noteEl.style.display = 'none';
-  }
-
-  $('ans-exp').textContent     = q.explanation;
-  $('ans-reveal').className    = 'ans-reveal show';
-  $('reveal-btn').style.display = 'none';
-  $('next-btn').className       = 'next-btn show';
-});
 
 /* ── Next ── */
 $('next-btn').addEventListener('click', () => {
@@ -252,10 +327,7 @@ $('next-btn').addEventListener('click', () => {
 /* ── Results ── */
 function showResults() {
   let totalC = 0, totalT = 0;
-  ['frames', 'exA', 'exB'].forEach(key => {
-    const s = state.scores[key];
-    if (s) { totalC += s.c; totalT += s.t; }
-  });
+  Object.values(state.scores).forEach(s => { totalC += s.c; totalT += s.t; });
 
   const pct = totalT ? Math.round(totalC / totalT * 100) : 0;
   $('score-big').textContent = `${totalC}/${totalT}`;
@@ -265,10 +337,6 @@ function showResults() {
   else if (pct >= 60) $('res-h2').textContent = 'クイズ完了！ 👍';
   else                $('res-h2').textContent = 'クイズ完了！';
 
-  // Section breakdown
-  const container = $('sec-results');
-  container.innerHTML = '';
-
   const SEC_NAMES = {
     frames: 'FRAME（例題）',
     exA:    'Exercise A（空所補充）',
@@ -276,36 +344,34 @@ function showResults() {
     exC:    'Exercise C（整序英作文）'
   };
 
-  // Ordered display
+  const container = $('sec-results');
+  container.innerHTML = '';
   ['frames', 'exA', 'exB', 'exC'].forEach(key => {
     const s = state.scores[key];
-    if (!s) return;
-
+    if (!s || s.t === 0) return;
+    const p   = Math.round(s.c / s.t * 100);
     const card = document.createElement('div');
     card.className = 'sec-res';
-
-    if (key === 'exC') {
-      card.innerHTML = `
-        <span class="sec-res-name">${SEC_NAMES[key]}</span>
-        <div class="mini-bar"><div class="mini-fill" style="width:100%"></div></div>
-        <span class="sec-res-score">${s.t}問確認</span>
-      `;
-    } else {
-      const p = s.t ? Math.round(s.c / s.t * 100) : 0;
-      card.innerHTML = `
-        <span class="sec-res-name">${SEC_NAMES[key]}</span>
-        <div class="mini-bar"><div class="mini-fill" style="width:${p}%"></div></div>
-        <span class="sec-res-score">${s.c}/${s.t}</span>
-      `;
-    }
+    card.innerHTML = `
+      <span class="sec-res-name">${SEC_NAMES[key]}</span>
+      <div class="mini-bar"><div class="mini-fill" style="width:${p}%"></div></div>
+      <span class="sec-res-score">${s.c}/${s.t}</span>`;
     container.appendChild(card);
   });
 
-  // Save score (exclude ExC from scoring)
+  // Wrong-only retry button
+  const wrongBtn = $('retry-wrong-btn');
+  if (state.wrongIds.length > 0) {
+    wrongBtn.textContent = `✗ 間違えた ${state.wrongIds.length} 問だけもう一度`;
+    wrongBtn.style.display = '';
+  } else {
+    wrongBtn.style.display = 'none';
+  }
+
+  // Save score
   if (totalT > 0) {
     try {
       localStorage.setItem('tense-score', JSON.stringify({ c: totalC, t: totalT, pct }));
-      // Refresh prev-score on home screen
       $('prev-card').style.display = '';
       $('prev-val').textContent = `${totalC}/${totalT} (${pct}%)`;
     } catch (_) {}
